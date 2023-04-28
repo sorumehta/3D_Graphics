@@ -39,6 +39,63 @@ private:
             o.x /= w; o.y /= w; o.z /= w;
         }
     }
+    mat4x4 Matrix_MakeRotationX(float fAngleRad)
+    {
+        mat4x4 matrix;
+        matrix.m[0][0] = 1.0f;
+        matrix.m[1][1] = cosf(fAngleRad);
+        matrix.m[1][2] = sinf(fAngleRad);
+        matrix.m[2][1] = -sinf(fAngleRad);
+        matrix.m[2][2] = cosf(fAngleRad);
+        matrix.m[3][3] = 1.0f;
+        return matrix;
+    }
+
+    mat4x4 Matrix_MakeRotationZ(float fAngleRad)
+    {
+        mat4x4 matrix;
+        matrix.m[0][0] = cosf(fAngleRad);
+        matrix.m[0][1] = sinf(fAngleRad);
+        matrix.m[1][0] = -sinf(fAngleRad);
+        matrix.m[1][1] = cosf(fAngleRad);
+        matrix.m[2][2] = 1.0f;
+        matrix.m[3][3] = 1.0f;
+        return matrix;
+    }
+    vec3d Vector_Add(vec3d &v1, vec3d &v2)
+    {
+        return { v1.x + v2.x, v1.y + v2.y, v1.z + v2.z };
+    }
+
+    vec3d Vector_Sub(vec3d &v1, vec3d &v2)
+    {
+        return { v1.x - v2.x, v1.y - v2.y, v1.z - v2.z };
+    }
+
+    float Vector_DotProduct(vec3d &v1, vec3d &v2)
+    {
+        return v1.x*v2.x + v1.y*v2.y + v1.z * v2.z;
+    }
+
+    float Vector_Length(vec3d &v)
+    {
+        return sqrtf(Vector_DotProduct(v, v));
+    }
+
+    vec3d Vector_Normalise(vec3d &v)
+    {
+        float l = Vector_Length(v);
+        return { v.x / l, v.y / l, v.z / l };
+    }
+
+    vec3d Vector_CrossProduct(vec3d &v1, vec3d &v2)
+    {
+        vec3d v;
+        v.x = v1.y * v2.z - v1.z * v2.y;
+        v.y = v1.z * v2.x - v1.x * v2.z;
+        v.z = v1.x * v2.y - v1.y * v2.x;
+        return v;
+    }
 
 
     float clamp(float value, float min_value, float max_value) {
@@ -116,21 +173,8 @@ public:
         mat4x4 matRotZ, matRotX;
         fTheta += 1.0f * fElapsedTime;
 
-        // Rotation Z
-        matRotZ.m[0][0] = cosf(fTheta);
-        matRotZ.m[0][1] = sinf(fTheta);
-        matRotZ.m[1][0] = -sinf(fTheta);
-        matRotZ.m[1][1] = cosf(fTheta);
-        matRotZ.m[2][2] = 1;
-        matRotZ.m[3][3] = 1;
-
-        // Rotation X
-        matRotX.m[0][0] = 1;
-        matRotX.m[1][1] = cosf(fTheta * 0.5f);
-        matRotX.m[1][2] = sinf(fTheta * 0.5f);
-        matRotX.m[2][1] = -sinf(fTheta * 0.5f);
-        matRotX.m[2][2] = cosf(fTheta * 0.5f);
-        matRotX.m[3][3] = 1;
+        matRotZ = Matrix_MakeRotationZ(fTheta * 0.5f);
+        matRotX = Matrix_MakeRotationX(fTheta);
         for(auto tri: meshCube.tris){
             triangle triProjected, triTranslated, triRotatedZ, triRotatedZX;
 
@@ -145,42 +189,31 @@ public:
 
             // We want to be away from the world, not at the center. So we offset z axis
             triTranslated = triRotatedZX;
-            triTranslated.p[0].z = triRotatedZX.p[0].z + 3.0f;
-            triTranslated.p[1].z = triRotatedZX.p[1].z + 3.0f;
-            triTranslated.p[2].z = triRotatedZX.p[2].z + 3.0f;
+            vec3d zOffset = {0, 0, 3.0f};
+            triTranslated.p[0] = Vector_Add(triRotatedZX.p[0], zOffset);
+            triTranslated.p[1] = Vector_Add(triRotatedZX.p[1], zOffset);
+            triTranslated.p[2] = Vector_Add(triRotatedZX.p[2], zOffset);
+
 
             vec3d normal, line1, line2;
-            line1.x = triTranslated.p[1].x - triTranslated.p[0].x;
-            line1.y = triTranslated.p[1].y - triTranslated.p[0].y;
-            line1.z = triTranslated.p[1].z - triTranslated.p[0].z;
 
-            line2.x = triTranslated.p[2].x - triTranslated.p[0].x;
-            line2.y = triTranslated.p[2].y - triTranslated.p[0].y;
-            line2.z = triTranslated.p[2].z - triTranslated.p[0].z;
-
+            // Get lines either side of triangle
+            line1 = Vector_Sub(triTranslated.p[1], triTranslated.p[0]);
+            line2 = Vector_Sub(triTranslated.p[2], triTranslated.p[0]);
             // normal is the cross product of the 2 lines
-            normal.x = line1.y * line2.z - line1.z * line2.y;
-            normal.y = line1.z * line2.x - line1.x * line2.z;
-            normal.z = line1.x * line2.y - line1.y * line2.x;
-
+            normal = Vector_CrossProduct(line1, line2);
             // convert normal into unit vector
-            float l = std::sqrtf(normal.x*normal.x + normal.y*normal.y + normal.z*normal.z);
-            normal.x /= l; normal.y /= l; normal.z /= l;
-
-            // only project to screen if the normal and the line from camera (0,0,0) to any point on triangle plane are 'similar'
-            // here similar means that the line of sight and the normal from plane should have angle less than 90 between them.
-            // So we calculate this using a dot product
-            if(normal.x * (triTranslated.p[0].x - vCamera.x) +
-               normal.y * (triTranslated.p[0].y - vCamera.y) +
-               normal.z * (triTranslated.p[0].z - vCamera.z) < 0.0f)
+            normal = Vector_Normalise(normal);
+            // Get Ray from triangle to camera
+            vec3d vCameraRay = Vector_Sub(triTranslated.p[0], vCamera);
+            // only project to screen if the normal and camera ray are aligned
+            if(Vector_DotProduct(normal, vCameraRay)  < 0.0f)
             {
                 //Illumination. light coming towards screen from all points
                 vec3d light_direction = {0.0f, 0.0f, -1.0f};
-                float l = std::sqrtf(light_direction.x*light_direction.x +
-                        light_direction.y*light_direction.y + light_direction.z*light_direction.z);
-                light_direction.x /= l; light_direction.y /= l; light_direction.z /= l;
-
-                float dp = normal.x*light_direction.x + normal.y*light_direction.y + normal.z*light_direction.z;
+                light_direction = Vector_Normalise(light_direction);
+                // get alignment between normal and light
+                float dp = std::max(0.1f, Vector_DotProduct(light_direction, normal));
                 triTranslated.color = dotProductToRGB(dp, -1.0f, 1.0f);
                 // Project from world space (3D) to Screen space (2D)
                 MultiplyMatrixVector(triTranslated.p[0], triProjected.p[0], matProj);
@@ -188,13 +221,11 @@ public:
                 MultiplyMatrixVector(triTranslated.p[2], triProjected.p[2], matProj);
                 triProjected.color = triTranslated.color;
 
-                // scale to positive (from -1,+1 to 0,+2)
-                triProjected.p[0].x += 1.0f;
-                triProjected.p[0].y += 1.0f;
-                triProjected.p[1].x += 1.0f;
-                triProjected.p[1].y += 1.0f;
-                triProjected.p[2].x += 1.0f;
-                triProjected.p[2].y += 1.0f;
+                // offset x,y to positive into visible normalised space (from -1,+1 to 0,+2)
+                vec3d vOffsetView = { 1,1,0 };
+                triProjected.p[0] = Vector_Add(triProjected.p[0], vOffsetView);
+                triProjected.p[1] = Vector_Add(triProjected.p[1], vOffsetView);
+                triProjected.p[2] = Vector_Add(triProjected.p[2], vOffsetView);
 
                 // scale to screen size
                 triProjected.p[0].x *= 0.5f * mWindowWidth;
