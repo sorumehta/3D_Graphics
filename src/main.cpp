@@ -1,7 +1,6 @@
 #include "SimpleGameEngine.h"
 #include <cmath>
 #include <list>
-#include <memory>
 
 struct vec3d {
     float x, y, z;
@@ -9,6 +8,7 @@ struct vec3d {
 
 struct triangle {
     vec3d p[3];
+    Color color;
 };
 
 struct mesh {
@@ -25,6 +25,7 @@ private:
     mesh meshCube;
     mat4x4 matProj;
     float fTheta;
+    vec3d vCamera = {0};
 
     void MultiplyMatrixVector(vec3d &i, vec3d &o, mat4x4 &m)
     {
@@ -38,6 +39,31 @@ private:
             o.x /= w; o.y /= w; o.z /= w;
         }
     }
+
+
+    float clamp(float value, float min_value, float max_value) {
+        return std::max(min_value, std::min(value, max_value));
+    }
+
+    Color dotProductToRGB(float dot_product, float min_dot_product, float max_dot_product) {
+        // Clamp the dot product value between min_dot_product and max_dot_product
+        dot_product = clamp(dot_product, min_dot_product, max_dot_product);
+
+        // Normalize the dot product value to a range of 0 to 1
+        float normalized_dot_product = (dot_product - min_dot_product) / (max_dot_product - min_dot_product);
+
+        // Convert the normalized dot product value to an 8-bit integer value
+        uint8_t color_value = static_cast<uint8_t>(normalized_dot_product * 255);
+
+        // Set the RGB color channels
+        Color color;
+        color.r = color_value;
+        color.g = color_value;
+        color.b = color_value;
+
+        return color;
+    }
+
 public:
     Engine3D(){}
 
@@ -117,34 +143,71 @@ public:
             MultiplyMatrixVector(triRotatedZ.p[1], triRotatedZX.p[1], matRotX);
             MultiplyMatrixVector(triRotatedZ.p[2], triRotatedZX.p[2], matRotX);
 
-            // in tri, we are currently at position 0,0,0, but we want our perspective to be outside the cube. So,
-            // before projecting the triangle tri into 2D space, we want to translate its z axis into the screen
+            // We want to be away from the world, not at the center. So we offset z axis
             triTranslated = triRotatedZX;
             triTranslated.p[0].z = triRotatedZX.p[0].z + 3.0f;
             triTranslated.p[1].z = triRotatedZX.p[1].z + 3.0f;
             triTranslated.p[2].z = triRotatedZX.p[2].z + 3.0f;
 
-            MultiplyMatrixVector(triTranslated.p[0], triProjected.p[0], matProj);
-            MultiplyMatrixVector(triTranslated.p[1], triProjected.p[1], matProj);
-            MultiplyMatrixVector(triTranslated.p[2], triProjected.p[2], matProj);
+            vec3d normal, line1, line2;
+            line1.x = triTranslated.p[1].x - triTranslated.p[0].x;
+            line1.y = triTranslated.p[1].y - triTranslated.p[0].y;
+            line1.z = triTranslated.p[1].z - triTranslated.p[0].z;
 
-            // scale to positive (from -1,+1 to 0,+2)
-            triProjected.p[0].x += 1.0f; triProjected.p[0].y += 1.0f;
-            triProjected.p[1].x += 1.0f; triProjected.p[1].y += 1.0f;
-            triProjected.p[2].x += 1.0f; triProjected.p[2].y += 1.0f;
+            line2.x = triTranslated.p[2].x - triTranslated.p[0].x;
+            line2.y = triTranslated.p[2].y - triTranslated.p[0].y;
+            line2.z = triTranslated.p[2].z - triTranslated.p[0].z;
 
-            // scale to screen size
-            triProjected.p[0].x *= 0.5f * mWindowWidth;
-            triProjected.p[0].y *= 0.5f * mWindowHeight;
-            triProjected.p[1].x *= 0.5f * mWindowWidth;
-            triProjected.p[1].y *= 0.5f * mWindowHeight;
-            triProjected.p[2].x *= 0.5f * mWindowWidth;
-            triProjected.p[2].y *= 0.5f * mWindowHeight;
+            // normal is the cross product of the 2 lines
+            normal.x = line1.y * line2.z - line1.z * line2.y;
+            normal.y = line1.z * line2.x - line1.x * line2.z;
+            normal.z = line1.x * line2.y - line1.y * line2.x;
 
-            drawTriangle(triProjected.p[0].x, triProjected.p[0].y,
-                         triProjected.p[1].x, triProjected.p[1].y,
-                         triProjected.p[2].x, triProjected.p[2].y);
+            // convert normal into unit vector
+            float l = std::sqrtf(normal.x*normal.x + normal.y*normal.y + normal.z*normal.z);
+            normal.x /= l; normal.y /= l; normal.z /= l;
 
+            // only project to screen if the normal and the line from camera (0,0,0) to any point on triangle plane are 'similar'
+            // here similar means that the line of sight and the normal from plane should have angle less than 90 between them.
+            // So we calculate this using a dot product
+            if(normal.x * (triTranslated.p[0].x - vCamera.x) +
+               normal.y * (triTranslated.p[0].y - vCamera.y) +
+               normal.z * (triTranslated.p[0].z - vCamera.z) < 0.0f)
+            {
+                //Illumination. light coming towards screen from all points
+                vec3d light_direction = {0.0f, 0.0f, -1.0f};
+                float l = std::sqrtf(light_direction.x*light_direction.x +
+                        light_direction.y*light_direction.y + light_direction.z*light_direction.z);
+                light_direction.x /= l; light_direction.y /= l; light_direction.z /= l;
+
+                float dp = normal.x*light_direction.x + normal.y*light_direction.y + normal.z*light_direction.z;
+                triTranslated.color = dotProductToRGB(dp, -1.0f, 1.0f);
+                // Project from world space (3D) to Screen space (2D)
+                MultiplyMatrixVector(triTranslated.p[0], triProjected.p[0], matProj);
+                MultiplyMatrixVector(triTranslated.p[1], triProjected.p[1], matProj);
+                MultiplyMatrixVector(triTranslated.p[2], triProjected.p[2], matProj);
+                triProjected.color = triTranslated.color;
+
+                // scale to positive (from -1,+1 to 0,+2)
+                triProjected.p[0].x += 1.0f;
+                triProjected.p[0].y += 1.0f;
+                triProjected.p[1].x += 1.0f;
+                triProjected.p[1].y += 1.0f;
+                triProjected.p[2].x += 1.0f;
+                triProjected.p[2].y += 1.0f;
+
+                // scale to screen size
+                triProjected.p[0].x *= 0.5f * mWindowWidth;
+                triProjected.p[0].y *= 0.5f * mWindowHeight;
+                triProjected.p[1].x *= 0.5f * mWindowWidth;
+                triProjected.p[1].y *= 0.5f * mWindowHeight;
+                triProjected.p[2].x *= 0.5f * mWindowWidth;
+                triProjected.p[2].y *= 0.5f * mWindowHeight;
+
+                fillTriangle(triProjected.p[0].x, triProjected.p[0].y,
+                             triProjected.p[1].x, triProjected.p[1].y,
+                             triProjected.p[2].x, triProjected.p[2].y, triProjected.color);
+            }
         }
         return true;
     }

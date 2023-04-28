@@ -6,9 +6,9 @@ const int FONT_SIZE = 18;
 //const int FONT_HEIGHT = 18;
 
 SDL_Renderer *gRenderer = nullptr;
-TTF_Font *gFont = NULL;
+//TTF_Font *gFont = NULL;
 //The music that will be played
-Mix_Music *gMusic = NULL;
+//Mix_Music *gMusic = NULL;
 
 LTexture::LTexture() {
     mTexture = nullptr;
@@ -54,65 +54,65 @@ LTexture::~LTexture() {
     free();
 }
 
-bool LTexture::loadTextureFromText(const std::string &text, SDL_Color color) {
-    if (text.length() == 0) {
-        // nothing to render
-        return true;
-    }
-    //free existing texture
-    free();
-
-    SDL_Surface *textSurface = TTF_RenderUTF8_Solid_Wrapped(gFont, text.c_str(), color, 0);
-    if (textSurface == nullptr) {
-        std::cout << "Unable to render text surface! SDL_ttf Error: " << TTF_GetError() << std::endl;
-        return false;
-    }
-    mTexture = SDL_CreateTextureFromSurface(gRenderer, textSurface);
-    if (mTexture == nullptr) {
-        std::cout << "Unable to create texture from rendered text! SDL Error:" << SDL_GetError() << std::endl;
-        return false;
-    }
-    mWidth = textSurface->w;
-    mHeight = textSurface->h;
-    SDL_FreeSurface(textSurface);
-    return true;
-}
-
-bool LTexture::loadTextureFromFile(std::string path) {
-
-    //Get rid of preexisting texture
-    free();
-
-    //The final texture
-    SDL_Texture *newTexture = NULL;
-
-    //Load image at specified path
-    SDL_Surface *loadedSurface = IMG_Load(path.c_str());
-    if (loadedSurface == NULL) {
-        std::cout << "Unable to load image " << path << " SDL_image Error: \n" << IMG_GetError() << std::endl;
-    } else {
-        //Color key image
-        SDL_SetColorKey(loadedSurface, SDL_TRUE, SDL_MapRGB(loadedSurface->format, 0, 0xFF, 0xFF));
-
-        //Create texture from surface pixels
-        newTexture = SDL_CreateTextureFromSurface(gRenderer, loadedSurface);
-        if (newTexture == NULL) {
-            std::cout << "Unable to create texture from" << path << "SDL Error: %s\n" << SDL_GetError() << std::endl;
-        } else {
-            //Get image dimensions
-            mWidth = loadedSurface->w;
-            mHeight = loadedSurface->h;
-        }
-
-        //Get rid of old loaded surface
-        SDL_FreeSurface(loadedSurface);
-    }
-
-    //Return success
-    mTexture = newTexture;
-    return mTexture != NULL;
-
-}
+//bool LTexture::loadTextureFromText(const std::string &text, SDL_Color color) {
+//    if (text.length() == 0) {
+//        // nothing to render
+//        return true;
+//    }
+//    //free existing texture
+//    free();
+//
+//    SDL_Surface *textSurface = TTF_RenderUTF8_Solid_Wrapped(gFont, text.c_str(), color, 0);
+//    if (textSurface == nullptr) {
+//        std::cout << "Unable to render text surface! SDL_ttf Error: " << TTF_GetError() << std::endl;
+//        return false;
+//    }
+//    mTexture = SDL_CreateTextureFromSurface(gRenderer, textSurface);
+//    if (mTexture == nullptr) {
+//        std::cout << "Unable to create texture from rendered text! SDL Error:" << SDL_GetError() << std::endl;
+//        return false;
+//    }
+//    mWidth = textSurface->w;
+//    mHeight = textSurface->h;
+//    SDL_FreeSurface(textSurface);
+//    return true;
+//}
+//
+//bool LTexture::loadTextureFromFile(std::string path) {
+//
+//    //Get rid of preexisting texture
+//    free();
+//
+//    //The final texture
+//    SDL_Texture *newTexture = NULL;
+//
+//    //Load image at specified path
+//    SDL_Surface *loadedSurface = IMG_Load(path.c_str());
+//    if (loadedSurface == NULL) {
+//        std::cout << "Unable to load image " << path << " SDL_image Error: \n" << IMG_GetError() << std::endl;
+//    } else {
+//        //Color key image
+//        SDL_SetColorKey(loadedSurface, SDL_TRUE, SDL_MapRGB(loadedSurface->format, 0, 0xFF, 0xFF));
+//
+//        //Create texture from surface pixels
+//        newTexture = SDL_CreateTextureFromSurface(gRenderer, loadedSurface);
+//        if (newTexture == NULL) {
+//            std::cout << "Unable to create texture from" << path << "SDL Error: %s\n" << SDL_GetError() << std::endl;
+//        } else {
+//            //Get image dimensions
+//            mWidth = loadedSurface->w;
+//            mHeight = loadedSurface->h;
+//        }
+//
+//        //Get rid of old loaded surface
+//        SDL_FreeSurface(loadedSurface);
+//    }
+//
+//    //Return success
+//    mTexture = newTexture;
+//    return mTexture != NULL;
+//
+//}
 
 
 GameEngine::GameEngine() : mWindowWidth(80), mWindowHeight(40), gWindow(nullptr) {
@@ -120,23 +120,23 @@ GameEngine::GameEngine() : mWindowWidth(80), mWindowHeight(40), gWindow(nullptr)
         std::cout << "SDL initialization failed: " << SDL_GetError();
     }
     // initialise font loading
-    if (TTF_Init() == -1) {
-        std::cout << "SDL_ttf could not initialize! SDL_ttf Error:" << TTF_GetError();
-        return;
-    }
+//    if (TTF_Init() == -1) {
+//        std::cout << "SDL_ttf could not initialize! SDL_ttf Error:" << TTF_GetError();
+//        return;
+//    }
     //Initialize PNG loading
-    int imgFlags = IMG_INIT_PNG;
-    if (!(IMG_Init(imgFlags) & imgFlags)) {
-        std::cout << "SDL_image could not initialize! SDL_image Error: \n" << IMG_GetError() << std::endl;
-        return;
-    }
-
-    //Initialize SDL_mixer
-    if( Mix_OpenAudio( 44100, MIX_DEFAULT_FORMAT, 2, 2048 ) < 0 )
-    {
-        std::cout <<"SDL_mixer could not initialize! SDL_mixer Error: %s\n" << Mix_GetError() << std::endl;
-
-    }
+//    int imgFlags = IMG_INIT_PNG;
+//    if (!(IMG_Init(imgFlags) & imgFlags)) {
+//        std::cout << "SDL_image could not initialize! SDL_image Error: \n" << IMG_GetError() << std::endl;
+//        return;
+//    }
+//
+//    //Initialize SDL_mixer
+//    if( Mix_OpenAudio( 44100, MIX_DEFAULT_FORMAT, 2, 2048 ) < 0 )
+//    {
+//        std::cout <<"SDL_mixer could not initialize! SDL_mixer Error: %s\n" << Mix_GetError() << std::endl;
+//
+//    }
 }
 
 GameEngine::~GameEngine() {
@@ -172,25 +172,25 @@ bool GameEngine::constructConsole(int windowWidth = 80, int windowHeight = 40, c
     return true;
 
 }
+//
+//bool GameEngine::createResources() {
+//    gFont = TTF_OpenFont("../res/Roboto-Black.ttf", FONT_SIZE);
+//    if (gFont == nullptr) {
+//        std::cout << "Failed to load font! SDL_ttf Error: " << TTF_GetError();
+//        return false;
+//    }
+//    return true;
+//}
 
-bool GameEngine::createResources() {
-    gFont = TTF_OpenFont("../res/Roboto-Black.ttf", FONT_SIZE);
-    if (gFont == nullptr) {
-        std::cout << "Failed to load font! SDL_ttf Error: " << TTF_GetError();
-        return false;
-    }
-    return true;
-}
-
-
-bool GameEngine::loadMusic(const char *path) {
-    gMusic = Mix_LoadMUS( path);
-    if (gMusic == NULL) {
-        std::cout << "Failed to load beat music! SDL_mixer Error: %s\n" << Mix_GetError() << std::endl;
-        return false;
-    }
-    return true;
-}
+//
+//bool GameEngine::loadMusic(const char *path) {
+//    gMusic = Mix_LoadMUS( path);
+//    if (gMusic == NULL) {
+//        std::cout << "Failed to load beat music! SDL_mixer Error: %s\n" << Mix_GetError() << std::endl;
+//        return false;
+//    }
+//    return true;
+//}
 
 
 bool GameEngine::renderConsole() {
@@ -236,10 +236,23 @@ bool GameEngine::fillRect(int x, int y, int w, int h, Color color) {
     return true;
 }
 
+bool GameEngine::fillTriangle(float x1, float y1, float x2, float y2, float x3, float y3, Color color) {
+    SDL_SetRenderDrawColor(gRenderer, color.r, color.g, color.b, SDL_ALPHA_OPAQUE);
+    SDL_Vertex vertices[] = {
+            {{x1, y1}, {color.r, color.g, color.b, 255}, {1, 1}},
+            {{x2, y2}, {color.r, color.g, color.b, 255}, {1, 1}},
+            {{x3, y3}, {color.r, color.g, color.b, 255}, {1, 1}}
+    };
+    if(SDL_RenderGeometry(gRenderer, NULL, vertices, 3, NULL, 0) != 0){
+        return false;
+    }
+    return true;
+}
+
 void GameEngine::close_sdl() {
     //Free the music
-    Mix_FreeMusic( gMusic );
-    gMusic = NULL;
+//    Mix_FreeMusic( gMusic );
+//    gMusic = NULL;
     //Destroy window
     SDL_DestroyRenderer(gRenderer);
     SDL_DestroyWindow(gWindow);
@@ -258,11 +271,11 @@ void GameEngine::initScreen() {
 
 void GameEngine::startGameLoop() {
     bool quit = false;
-    if (!createResources()) {
-        std::cout << "error while loading resources" << std::endl;
-        close_sdl();
-        quit = true;
-    }
+//    if (!createResources()) {
+//        std::cout << "error while loading resources" << std::endl;
+//        close_sdl();
+//        quit = true;
+//    }
     initScreen();
     if (!onInit()) {
         std::cout << "onInit function returned error" << std::endl;
@@ -361,18 +374,18 @@ void GameEngine::DrawWireFrameModel(const std::vector<std::pair<float, float>> &
                  static_cast<int>(std::round(vecTransformedCoordinates[j % verts].second)), color);
     }
 }
-
-bool GameEngine::playMusic() {
-    if( Mix_PlayingMusic() == 0 )
-    {
-        //Play the music
-        Mix_PlayMusic( gMusic, -1 );
-    }
-}
-
-bool GameEngine::stopMusic() {
-    Mix_HaltMusic();
-}
+//
+//bool GameEngine::playMusic() {
+//    if( Mix_PlayingMusic() == 0 )
+//    {
+//        //Play the music
+//        Mix_PlayMusic( gMusic, -1 );
+//    }
+//}
+//
+//bool GameEngine::stopMusic() {
+//    Mix_HaltMusic();
+//}
 
 
 void InputEventHandler::addCallback(const std::string &cb_name, const KeyEventFuncPtr &fn) {

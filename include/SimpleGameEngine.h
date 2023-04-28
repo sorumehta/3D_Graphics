@@ -1,9 +1,6 @@
 #pragma once
 
 #include <SDL.h>
-#include <SDL_ttf.h>
-#include <SDL_image.h>
-#include <SDL_mixer.h>
 #include <iostream>
 #include <string>
 #include <thread>
@@ -20,9 +17,9 @@ public:
 
     ~LTexture();
 
-    bool loadTextureFromText(const std::string &text, SDL_Color color);
+//    bool loadTextureFromText(const std::string &text, SDL_Color color);
 
-    bool loadTextureFromFile(std::string path);
+//    bool loadTextureFromFile(std::string path);
 
     void drawTexture(int x, int y, int w = 0, int h = 0, SDL_Rect *clip = NULL,
                      double angle = 0.0, SDL_Point *center = NULL, SDL_RendererFlip flip = SDL_FLIP_NONE);
@@ -35,9 +32,9 @@ public:
 };
 
 struct Color {
-    int r;
-    int g;
-    int b;
+    unsigned char r;
+    unsigned char g;
+    unsigned char b;
 };
 
 using KeyEventFuncPtr = std::function<void(int, int, int, int, float)>;
@@ -80,6 +77,7 @@ public:
     bool drawTriangle(int x1, int y1, int x2, int y2, int x3, int y3, Color color = {0xFF, 0xFF, 0xFF});
 
     bool fillRect(int x, int y, int w, int h, Color color = {0xFF, 0xFF, 0xFF});
+    bool fillTriangle(float x1, float y1, float x2, float y2, float x3, float y3, Color color = {0xFF, 0xFF, 0xFF});
 
     void DrawWireFrameModel(const std::vector<std::pair<float, float>> &vecModelCoordinates, float x, float y,
                             float r = 0.0f, float s = 1.0f, Color color = {0xFF, 0xFF, 0xFF});
