@@ -3,7 +3,10 @@
 #include <list>
 
 struct vec3d {
-    float x, y, z;
+    float x=0;
+    float y=0;
+    float z=0;
+
 };
 
 struct triangle {
@@ -25,7 +28,7 @@ private:
     mesh meshCube;
     mat4x4 matProj;
     float fTheta;
-    vec3d vCamera = {0};
+    vec3d vCamera;
 
     void MultiplyMatrixVector(vec3d &i, vec3d &o, mat4x4 &m)
     {
